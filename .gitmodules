@@ -1,0 +1,9 @@
+[submodule "score_client-lora"]
+	path = score_client-lora
+	url = git@github.com:zhushushangren1/score_client-lora.git
+[submodule "score_server-lora"]
+	path = score_server-lora
+	url = git@github.com:zhushushangren1/score_server-lora.git
+[submodule "shared/ScoreProtocol"]
+	path = shared/ScoreProtocol
+	url = git@github.com:zhushushangren1/ScoreProtocol.git

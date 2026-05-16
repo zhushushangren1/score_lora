@@ -1,0 +1,17 @@
+# 父仓库的 .gitignore
+# 子项目内部的构建/IDE 产物由各自的 .gitignore 负责，这里只覆盖顶层可能产生的临时文件。
+
+# IDE
+.vscode/
+.idea/
+
+# PlatformIO（防止顶层意外残留构建目录）
+.pio/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# 临时/日志
+*.log
+*.tmp
