@@ -1,0 +1,8 @@
+{
+  "name": "TM1637Display",
+  "version": "0.1.0",
+  "description": "Minimal bit-bang driver for TM1637 4-digit 7-segment display used by the LoRa score system.",
+  "keywords": ["tm1637", "7-segment", "display", "lora"],
+  "frameworks": "arduino",
+  "platforms": "espressif32"
+}
