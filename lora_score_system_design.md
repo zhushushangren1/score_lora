@@ -262,8 +262,8 @@ ESP32-S3 GND -> E22 GND / TM1637 GND
 |---|---|---|---|---|
 | `VCC` | 3.3V | 电源输入 | 无 | 推荐 3.3V 供电，避免串口 5V 电平风险 |
 | `GND` | GND | 电源地 | 无 | 必须与 ESP32 共地 |
-| `TXD` | ESP32 `GPIO40` | E22 -> ESP32 | `Serial1 RX` | 模块发送数据到 ESP32 |
-| `RXD` | ESP32 `GPIO41` | ESP32 -> E22 | `Serial1 TX` | ESP32 发送数据到模块 |
+| `TXD` | ESP32 `GPIO41` | E22 -> ESP32 | `Serial1 RX` | 模块发送数据到 ESP32 |
+| `RXD` | ESP32 `GPIO40` | ESP32 -> E22 | `Serial1 TX` | ESP32 发送数据到模块 |
 | `AUX` | ESP32 `GPIO42` | E22 -> ESP32 | `INPUT_PULLUP` | 判断模块忙闲，可用于发送前等待 |
 | `M0` | ESP32 `GPIO38` | ESP32 -> E22 | `OUTPUT`，默认 `LOW` | 模式选择脚，不能悬空 |
 | `M1` | ESP32 `GPIO39` | ESP32 -> E22 | `OUTPUT`，默认 `LOW` | 模式选择脚，不能悬空 |
@@ -391,8 +391,8 @@ ESP32 GND / E22 GND / 按键 GND / LED GND
 |---|---|---|---|---|
 | `VCC` | 3.3V | 电源输入 | 无 | T22D 可先用 ESP32 3V3，若不稳再用独立 3.3V |
 | `GND` | GND | 电源地 | 无 | 必须与 ESP32 共地 |
-| `TXD` | ESP32 `GPIO40` | E22 -> ESP32 | `Serial1 RX` | 服务端接收裁判机数据 |
-| `RXD` | ESP32 `GPIO41` | ESP32 -> E22 | `Serial1 TX` | 服务端发送 ACK/STATUS |
+| `TXD` | ESP32 `GPIO41` | E22 -> ESP32 | `Serial1 RX` | 服务端接收裁判机数据 |
+| `RXD` | ESP32 `GPIO40` | ESP32 -> E22 | `Serial1 TX` | 服务端发送 ACK/STATUS |
 | `AUX` | ESP32 `GPIO42` | E22 -> ESP32 | `INPUT_PULLUP` | 判断模块忙闲 |
 | `M0` | ESP32 `GPIO38` | ESP32 -> E22 | `OUTPUT`，默认 `LOW` | 正常透传模式 |
 | `M1` | ESP32 `GPIO39` | ESP32 -> E22 | `OUTPUT`，默认 `LOW` | 正常透传模式 |
