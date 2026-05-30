@@ -21,12 +21,12 @@ ESP32-S3 + E22-400T22D LoRa UART + TM1637 + 5按键 + 低电量LED + 18650
         LoRa 470MHz / UART透明传输 / CSV+CRC16
 
 服务端 x1
-ESP32-S3 + E22-400T22D/T30D + WiFi AP + LittleFS网页 + NVS状态保存 + 2实体按钮 + 4状态灯
+ESP32-S3 + E22-400T22D/T30D + WiFi AP + WebServer网页 + NVS状态保存 + 2实体按钮 + 4状态灯
 
         WiFi AP
 
 手机/电脑网页
-显示比分、裁判状态、电量、最近50条日志、控制下一轮/重置
+显示总比分、队伍名称、倒计时；控制页管理裁判、队伍名称、下一轮/重置
 ```
 
 ## 3. 硬件选型
@@ -640,7 +640,7 @@ client1/client2/client3 每个位置最多绑定一个 deviceId
 轮次完成逻辑：
 
 ```text
-3 名裁判全部提交
+所有已绑定裁判全部提交（正式比赛通常为 3 名；1 台联调时也可累计）
 -> 计算本轮最终分
 -> 累加总比分
 -> roundOpen=false
@@ -678,8 +678,10 @@ client1/client2/client3 每个位置最多绑定一个 deviceId
 继续沿用现有规则，红蓝双方分别计算：
 
 ```text
-3 个裁判中有 2 个或 3 个分数相同：采用相同分数
-3 个都不同：采用最低分
+正式 3 裁判时：3 个裁判中有 2 个或 3 个分数相同，采用相同分数
+正式 3 裁判时：3 个都不同，采用最低分
+1 台联调时：直接采用这台裁判提交的分数
+2 台联调时：两台相同采用相同分数，不同则采用最低分
 ```
 
 示例：
@@ -698,12 +700,24 @@ client1/client2/client3 每个位置最多绑定一个 deviceId
 
 网页继续使用 HTTP 轮询。
 
+当前 LoRa 服务端第一版使用 Arduino 内置 `WebServer` 直接渲染 HTML，暂不依赖 LittleFS 静态文件。网页实现放在服务端 `src/WebUi.cpp` / `src/WebUi.h`，`ServerWeb.cpp` 负责把服务端状态转换成网页状态快照并接入动作回调：
+
+- 服务端启动 WiFi AP：SSID `ScoreServer`，密码 `score1234`。
+- 默认 AP 地址为 `http://192.168.4.1/`。
+- `/` 自动跳转到 `/score`。
+- `/score` 为显示页，1 秒自动刷新，只显示两个队伍名称、总比分和倒计时。
+- `/control` 为控制页，提供队伍名称修改、绑定、解绑、下一轮倒计时秒数输入、重置比分按钮。
+- 绑定、解绑、下一轮、重置比分、修改队名使用 HTTP POST，并复用服务端已有串口命令/动作处理逻辑。
+- 最近 50 条内存日志还未接入，后续在控制页补充。
+
 - `/score` 轮询间隔从 500ms 改为 1000ms。
 - 继续保留显示页 `/`。
 - 继续保留控制页 `/control`。
 
 控制页新增内容：
 
+- 两个队伍名称，可在控制页修改并同步到显示页。
+- 下一轮按钮输入倒计时秒数，确认后进入下一轮并启动倒计时。
 - 每个裁判在线/离线状态。
 - 每个裁判电池电压。
 - 每个裁判当前轮是否已提交。
@@ -736,7 +750,8 @@ F09B 在线 3.79V [绑定为裁判1] [绑定为裁判2] [绑定为裁判3]
 控制操作：
 
 - 普通下一轮：仅本轮完成后允许。
-- 强制下一轮：仅网页提供，必须二次确认。
+- 强制下一轮：仅网页提供，必须二次确认；未完成轮不累计到总比分。
+- 下一轮倒计时：控制页输入秒数，确认后 `roundId++`、清空本轮提交、广播新轮次状态，并启动显示页倒计时。
 - 重置当前轮：清空本轮裁判提交，不改总比分。
 - 重置总比分：网页二次确认；服务端实体按钮长按 3 秒。
 - 绑定裁判：从未绑定设备列表选择目标裁判位。
@@ -796,12 +811,42 @@ Projects/
     lora_score_system_design.md
     score_client-lora/      裁判机固件（子模块）
       platformio.ini
-      src/main.cpp
+      src/main.cpp          启动顺序和 loop 调度入口
+      src/ClientState.h/.cpp
+                            deviceId/clientId、NVS、轮次锁定、pending submit、本地分数等共享状态
+      src/ClientLoraLink.h/.cpp
+                            E22 UART 初始化、HELLO/HEARTBEAT/SUBMIT/ACK 相关发送、LoRa 收帧
+      src/ClientProtocolHandlers.h/.cpp
+                            STATUS/ACK/ASSIGN/UNBIND 入站业务处理
+      src/ClientActions.h/.cpp
+                            提交队列、重传、解锁、本地红蓝分数增减
+      src/ClientButtons.h/.cpp
+                            5 个录分按键扫描、去抖、短按/长按分发
+      src/ClientDisplay.h/.cpp
+                            TM1637 显示状态机和短暂覆盖显示
+      src/BatteryMonitor.h/.cpp
+                            GPIO15 电池 ADC 采样和低电量 LED
+      src/ClientConsole.h/.cpp
+                            submit/show 串口调试命令
     score_server-lora/      服务端固件（子模块）
       platformio.ini
-      src/main.cpp
-      data/index.html       （步骤 11 接入网页后添加）
-      data/control.html     （步骤 12 接入网页后添加）
+      src/main.cpp          启动顺序和 loop 调度入口
+      src/ServerState.h/.cpp
+                            绑定表、未绑定设备、轮次、本轮提交、裁判在线/电量状态
+      src/LoraLink.h/.cpp   E22 UART 初始化、LoRa 收发、协议发送帧组装
+      src/ProtocolHandlers.h/.cpp
+                            HELLO/HEARTBEAT/SUBMIT/ACK 业务处理
+      src/ServerActions.h/.cpp
+                            绑定、解绑、下一轮、重置、list 等复用动作
+      src/SerialConsole.h/.cpp
+                            串口命令解析
+      src/ServerButtons.h/.cpp
+                            GPIO4/GPIO5 实体按钮扫描
+      src/StatusLeds.h/.cpp 4 个服务端状态灯
+      src/ServerWeb.h/.cpp  WebUi 状态适配和动作回调
+      src/WebUi.h           网页状态 DTO、动作回调接口
+      src/WebUi.cpp         WiFi AP、WebServer 路由和 HTML 渲染
+      （当前暂不需要 data/ 静态文件）
     shared/
       ScoreProtocol/        公共协议库（子模块）
         src/ScoreProtocol.h
@@ -842,7 +887,7 @@ lib_extra_dirs =
     ../shared
 ```
 
-`lib_extra_dirs = ../shared` 让两端固件都能 include 公共协议库 `ScoreProtocol`；`TM1637Display` 只有裁判机会 include（服务端不接数码管）。服务端的 `platformio.ini` 还会额外加 `board_build.filesystem = littlefs`，给步骤 11 的网页文件预留。
+`lib_extra_dirs = ../shared` 让两端固件都能 include 公共协议库 `ScoreProtocol`；`TM1637Display` 只有裁判机会 include（服务端不接数码管）。服务端当前使用 Arduino `WebServer` 内嵌页面，页面代码集中在 `WebUi.cpp`；后续如果要恢复静态页面，再在服务端 `platformio.ini` 增加 LittleFS 配置。
 
 裁判机启动时通过 MAC 生成 `deviceId`，通过服务端 `ASSIGN` 获取并保存 `clientId`。
 
