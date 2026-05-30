@@ -207,6 +207,12 @@ E22 VCC-GND 旁并联 470uF + 0.1uF
 
 不同 ESP32-S3 开发板的物理排针顺序可能不同，接线时看开发板丝印的 GPIO 名称，不按“第几针”接。
 
+裁判端按常见 ESP32-S3-DevKitC-1 排针布局规划走线：
+
+- E22-400T22D 使用右侧连续 GPIO38/GPIO39/GPIO40/GPIO41/GPIO42，整组靠近 LoRa 模块走线。
+- TM1637 用 GPIO48/GPIO47，5 个按键 GPIO4~GPIO8，电池 ADC GPIO15。
+- GPIO35~GPIO37 不接任何外设：N16R8 等带 OPI Flash/PSRAM 的 ESP32-S3 用这三个脚连八线 PSRAM，占用后不能复用。
+
 ### 4.1 裁判机总接线图
 
 ```text
@@ -255,12 +261,12 @@ ESP32-S3 GND -> E22 GND / TM1637 GND
 |---|---|---|---|---|
 | `VCC` | 3.3V | 电源输入 | 无 | 推荐 3.3V 供电，避免串口 5V 电平风险 |
 | `GND` | GND | 电源地 | 无 | 必须与 ESP32 共地 |
-| `TXD` | ESP32 `GPIO18` | E22 -> ESP32 | `Serial1 RX` | 模块发送数据到 ESP32 |
-| `RXD` | ESP32 `GPIO17` | ESP32 -> E22 | `Serial1 TX` | ESP32 发送数据到模块 |
-| `AUX` | ESP32 `GPIO11` | E22 -> ESP32 | `INPUT_PULLUP` | 判断模块忙闲，可用于发送前等待 |
-| `M0` | ESP32 `GPIO12` | ESP32 -> E22 | `OUTPUT`，默认 `LOW` | 模式选择脚，不能悬空 |
-| `M1` | ESP32 `GPIO13` | ESP32 -> E22 | `OUTPUT`，默认 `LOW` | 模式选择脚，不能悬空 |
-| `RST`/`NRST` | ESP32 `GPIO14`，可选 | ESP32 -> E22 | `OUTPUT`，默认 `HIGH` | 只有模块带复位脚时才接；没有该脚则忽略 |
+| `TXD` | ESP32 `GPIO40` | E22 -> ESP32 | `Serial1 RX` | 模块发送数据到 ESP32 |
+| `RXD` | ESP32 `GPIO41` | ESP32 -> E22 | `Serial1 TX` | ESP32 发送数据到模块 |
+| `AUX` | ESP32 `GPIO42` | E22 -> ESP32 | `INPUT_PULLUP` | 判断模块忙闲，可用于发送前等待 |
+| `M0` | ESP32 `GPIO38` | ESP32 -> E22 | `OUTPUT`，默认 `LOW` | 模式选择脚，不能悬空 |
+| `M1` | ESP32 `GPIO39` | ESP32 -> E22 | `OUTPUT`，默认 `LOW` | 模式选择脚，不能悬空 |
+| `RST`/`NRST` | 默认不接 | ESP32 -> E22 | 当前固件未使用 | 只有模块带复位脚时才考虑接；没有该脚则忽略 |
 
 正常透传模式：
 
@@ -284,8 +290,8 @@ E22 M1 -> GND
 |---|---|---|
 | `VCC` | 3.3V | 推荐 3.3V 供电，避免 DIO/CLK 上拉到 5V |
 | `GND` | GND | 与 ESP32 共地 |
-| `CLK` | ESP32 `GPIO9` | 时钟线 |
-| `DIO` | ESP32 `GPIO10` | 数据线 |
+| `CLK` | ESP32 `GPIO48` | 时钟线 |
+| `DIO` | ESP32 `GPIO47` | 数据线 |
 
 如果某个 TM1637 模块在 3.3V 下亮度不足，再考虑换模块或做电平转换，不建议直接把 VCC 接 5V 后把 DIO/CLK 直接连 ESP32。
 
@@ -364,18 +370,24 @@ ESP32-S3 3V3 或独立 3.3V 稳压模块
 ESP32 GND / E22 GND / 按键 GND / LED GND
 ```
 
+服务端 LoRa 接线与裁判端保持同一套 GPIO 映射：
+
+- E22-400T22D 使用右侧连续 GPIO38/GPIO39/GPIO40/GPIO41/GPIO42，便于两块洞洞板复用同一走线模板。
+- TM1637 用 GPIO48/GPIO47（接线同裁判端 4.4 节，服务端用它显示“轮号.已提交数”）；服务端实体按钮和状态灯保留在 GPIO4~GPIO7。
+- GPIO35~GPIO37 不接任何外设：N16R8 等带 OPI Flash/PSRAM 的 ESP32-S3 用这三个脚连八线 PSRAM，占用后不能复用。
+
 ### 5.2 服务端 E22-400T22D 接线
 
 | E22-400T22D 引脚 | 接到 ESP32-S3 / 电源 | 方向 | 程序配置 | 说明 |
 |---|---|---|---|---|
 | `VCC` | 3.3V | 电源输入 | 无 | T22D 可先用 ESP32 3V3，若不稳再用独立 3.3V |
 | `GND` | GND | 电源地 | 无 | 必须与 ESP32 共地 |
-| `TXD` | ESP32 `GPIO18` | E22 -> ESP32 | `Serial1 RX` | 服务端接收裁判机数据 |
-| `RXD` | ESP32 `GPIO17` | ESP32 -> E22 | `Serial1 TX` | 服务端发送 ACK/STATUS |
-| `AUX` | ESP32 `GPIO11` | E22 -> ESP32 | `INPUT_PULLUP` | 判断模块忙闲 |
-| `M0` | ESP32 `GPIO12` | ESP32 -> E22 | `OUTPUT`，默认 `LOW` | 正常透传模式 |
-| `M1` | ESP32 `GPIO13` | ESP32 -> E22 | `OUTPUT`，默认 `LOW` | 正常透传模式 |
-| `RST`/`NRST` | ESP32 `GPIO14`，可选 | ESP32 -> E22 | `OUTPUT`，默认 `HIGH` | 只有模块带复位脚时才接 |
+| `TXD` | ESP32 `GPIO40` | E22 -> ESP32 | `Serial1 RX` | 服务端接收裁判机数据 |
+| `RXD` | ESP32 `GPIO41` | ESP32 -> E22 | `Serial1 TX` | 服务端发送 ACK/STATUS |
+| `AUX` | ESP32 `GPIO42` | E22 -> ESP32 | `INPUT_PULLUP` | 判断模块忙闲 |
+| `M0` | ESP32 `GPIO38` | ESP32 -> E22 | `OUTPUT`，默认 `LOW` | 正常透传模式 |
+| `M1` | ESP32 `GPIO39` | ESP32 -> E22 | `OUTPUT`，默认 `LOW` | 正常透传模式 |
+| `RST`/`NRST` | 默认不接 | ESP32 -> E22 | 当前固件未使用 | 只有模块带复位脚时才考虑接 |
 
 ### 5.3 服务端实体按钮接线
 
@@ -764,24 +776,25 @@ Projects/
   esp32-client/             旧 WiFi 裁判端，不动
   score_system/             旧 WiFi 服务端，不动
 
-  esp32-client-lora/
-    platformio.ini
-    src/main.cpp
-    src/TM1637Display.h
-    src/TM1637Display.cpp
-
-  score_system-lora/
-    platformio.ini
-    src/main.cpp
-    data/index.html
-    data/control.html
-
-  shared/
-    ScoreProtocol/
-      src/ScoreProtocol.h
-      src/ScoreProtocol.cpp
-      src/Crc16.h
-      src/Crc16.cpp
+  score_lora/               父仓库（含设计文档；client/server/ScoreProtocol 以 git 子模块引用）
+    lora_score_system_design.md
+    score_client-lora/      裁判机固件（子模块）
+      platformio.ini
+      src/main.cpp
+    score_server-lora/      服务端固件（子模块）
+      platformio.ini
+      src/main.cpp
+      data/index.html       （步骤 11 接入网页后添加）
+      data/control.html     （步骤 12 接入网页后添加）
+    shared/
+      ScoreProtocol/        公共协议库（子模块）
+        src/ScoreProtocol.h
+        src/ScoreProtocol.cpp
+        src/Crc16.h
+        src/Crc16.cpp
+      TM1637Display/        共享数码管驱动（普通目录，随父仓库提交，裁判机与服务端共用）
+        src/TM1637Display.h
+        src/TM1637Display.cpp
 ```
 
 公共协议库职责：
@@ -798,20 +811,30 @@ Projects/
 裁判端不再使用多个编译环境区分裁判 ID。所有裁判机使用同一份固件：
 
 ```ini
-[env:judge]
+[env:esp32-s3-devkitc-1]
 platform = espressif32
 board = esp32-s3-devkitc-1
 framework = arduino
 monitor_speed = 115200
+board_build.arduino.memory_type = qio_opi
+board_build.partitions = default_16MB.csv
+build_flags =
+    -DBOARD_HAS_PSRAM
+    -DARDUINO_USB_MODE=0
+    -DARDUINO_USB_CDC_ON_BOOT=0
+lib_extra_dirs =
+    ../shared
 ```
+
+`lib_extra_dirs = ../shared` 让两端固件都能直接 include 共享库 `ScoreProtocol` 和 `TM1637Display`；服务端的 `platformio.ini` 还会额外加 `board_build.filesystem = littlefs`，给步骤 11 的网页文件预留。
 
 裁判机启动时通过 MAC 生成 `deviceId`，通过服务端 `ASSIGN` 获取并保存 `clientId`。
 
 ## 15. 第一版实施顺序
 
 1. 新建 `shared/ScoreProtocol`，实现 CRC16、CSV 组包与解析。
-2. 新建 `score_system-lora`，先实现 LoRa 串口收包、ACK 回包和串口日志。
-3. 新建 `esp32-client-lora`，实现 LoRa 发包、ACK 等待、随机退避和重发。
+2. 新建 `score_server-lora`，先实现 LoRa 串口收包、ACK 回包和串口日志。
+3. 新建 `score_client-lora`，实现 LoRa 发包、ACK 等待、随机退避和重发。
 4. 裁判机读取 MAC 生成 `deviceId`，发送 `HELLO`。
 5. 服务端显示未绑定设备，并能通过串口或网页下发 `ASSIGN`。
 6. 裁判机保存 `clientId` 到 NVS，并回复 `ASSIGN_ACK`。
@@ -862,6 +885,7 @@ monitor_speed = 115200
 | LoRa UART 模块 | `亿佰特 E22-400T22D` | UART，410.125~493.125MHz，22dBm，SMA 天线座 | 约 21mm x 36mm | 1 | 第一版先用 T22D；如果实测不够再换 T30D |
 | 可选高功率 LoRa | `亿佰特 E22-400T30D` | UART，410.125~493.125MHz，30dBm，发射电流更高 | 比 T22D 更大，以商家页面为准 | 0/1 | T30D 对电源要求更高，不建议一开始给裁判机用 |
 | LoRa 天线 | `470MHz SMA-J 胶棒天线` | 50Ω，SMA 公头带中针 | 常见 100~170mm | 1 | 不买 WiFi 2.4GHz 天线 |
+| 数码管模块 | `TM1637 四位数码管模块 0.56英寸` | 4 线接口：VCC/GND/DIO/CLK | 常见约 42mm x 24mm | 1 | 服务端用来显示“轮号.已提交数”进度；要带 TM1637 驱动板，不买裸数码管 |
 | 下一轮按钮 | `12x12x7.3mm 轻触开关` 或 `16mm 金属按钮 自复位` | 瞬时按键，非自锁 | 12mm 或 16mm 开孔款 | 1 | 服务端按钮可以比裁判机大，便于操作 |
 | 重置按钮 | `12x12x7.3mm 轻触开关` 或 `16mm 金属按钮 自复位` | 长按 3 秒触发重置 | 同上 | 1 | 不买自锁按钮 |
 | USB 电源 | `5V 2A USB 电源适配器` | 输出 5V，>=2A，Type-C/Micro USB 看开发板接口 | 常规 | 1 | 不用电脑弱 USB 口做长期供电 |
