@@ -373,7 +373,7 @@ ESP32 GND / E22 GND / 按键 GND / LED GND
 服务端 LoRa 接线与裁判端保持同一套 GPIO 映射：
 
 - E22-400T22D 使用右侧连续 GPIO38/GPIO39/GPIO40/GPIO41/GPIO42，便于两块洞洞板复用同一走线模板。
-- TM1637 用 GPIO48/GPIO47（接线同裁判端 4.4 节，服务端用它显示“轮号.已提交数”）；服务端实体按钮和状态灯保留在 GPIO4~GPIO7。
+- 服务端实体按钮和状态灯保留在 GPIO4~GPIO7；服务端不接数码管。
 - GPIO35~GPIO37 不接任何外设：N16R8 等带 OPI Flash/PSRAM 的 ESP32-S3 用这三个脚连八线 PSRAM，占用后不能复用。
 
 ### 5.2 服务端 E22-400T22D 接线
@@ -792,7 +792,7 @@ Projects/
         src/ScoreProtocol.cpp
         src/Crc16.h
         src/Crc16.cpp
-      TM1637Display/        共享数码管驱动（普通目录，随父仓库提交，裁判机与服务端共用）
+      TM1637Display/        共享数码管驱动（普通目录，随父仓库提交，仅裁判机使用）
         src/TM1637Display.h
         src/TM1637Display.cpp
 ```
@@ -826,7 +826,7 @@ lib_extra_dirs =
     ../shared
 ```
 
-`lib_extra_dirs = ../shared` 让两端固件都能直接 include 共享库 `ScoreProtocol` 和 `TM1637Display`；服务端的 `platformio.ini` 还会额外加 `board_build.filesystem = littlefs`，给步骤 11 的网页文件预留。
+`lib_extra_dirs = ../shared` 让两端固件都能 include 公共协议库 `ScoreProtocol`；`TM1637Display` 只有裁判机会 include（服务端不接数码管）。服务端的 `platformio.ini` 还会额外加 `board_build.filesystem = littlefs`，给步骤 11 的网页文件预留。
 
 裁判机启动时通过 MAC 生成 `deviceId`，通过服务端 `ASSIGN` 获取并保存 `clientId`。
 
@@ -885,7 +885,6 @@ lib_extra_dirs =
 | LoRa UART 模块 | `亿佰特 E22-400T22D` | UART，410.125~493.125MHz，22dBm，SMA 天线座 | 约 21mm x 36mm | 1 | 第一版先用 T22D；如果实测不够再换 T30D |
 | 可选高功率 LoRa | `亿佰特 E22-400T30D` | UART，410.125~493.125MHz，30dBm，发射电流更高 | 比 T22D 更大，以商家页面为准 | 0/1 | T30D 对电源要求更高，不建议一开始给裁判机用 |
 | LoRa 天线 | `470MHz SMA-J 胶棒天线` | 50Ω，SMA 公头带中针 | 常见 100~170mm | 1 | 不买 WiFi 2.4GHz 天线 |
-| 数码管模块 | `TM1637 四位数码管模块 0.56英寸` | 4 线接口：VCC/GND/DIO/CLK | 常见约 42mm x 24mm | 1 | 服务端用来显示“轮号.已提交数”进度；要带 TM1637 驱动板，不买裸数码管 |
 | 下一轮按钮 | `12x12x7.3mm 轻触开关` 或 `16mm 金属按钮 自复位` | 瞬时按键，非自锁 | 12mm 或 16mm 开孔款 | 1 | 服务端按钮可以比裁判机大，便于操作 |
 | 重置按钮 | `12x12x7.3mm 轻触开关` 或 `16mm 金属按钮 自复位` | 长按 3 秒触发重置 | 同上 | 1 | 不买自锁按钮 |
 | USB 电源 | `5V 2A USB 电源适配器` | 输出 5V，>=2A，Type-C/Micro USB 看开发板接口 | 常规 | 1 | 不用电脑弱 USB 口做长期供电 |
