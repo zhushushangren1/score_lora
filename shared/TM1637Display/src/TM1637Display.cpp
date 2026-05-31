@@ -1,3 +1,5 @@
+// TM1637 四位数码管驱动实现。
+// 负责 bit-bang 两线协议、数字/字符编码，以及裁判端比分和短文本显示。
 #include "TM1637Display.h"
 #include <Arduino.h>
 

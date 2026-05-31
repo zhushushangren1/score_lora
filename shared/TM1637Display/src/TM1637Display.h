@@ -1,3 +1,5 @@
+// TM1637 四位数码管驱动接口。
+// 裁判端通过该类显示未绑定短码、提交状态、锁定状态和红蓝分数。
 #ifndef TM1637DISPLAY_H
 #define TM1637DISPLAY_H
 
